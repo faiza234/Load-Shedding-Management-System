@@ -2,21 +2,19 @@
 const express = require("express");
 const { actionRepository } = require("../repositories");
 const { requireAuth } = require("../middleware/auth");
+const { validateIdParam } = require("../middleware/validator");
 
 const router = express.Router();
 
-// GET /api/actions?area_id=&complaint_id=
 router.get("/", requireAuth, async (req, res, next) => {
   try {
-    const { area_id, complaint_id } = req.query;
-    const actions = await actionRepository.findAll({ area_id, complaint_id });
+    const actions = await actionRepository.findAll(req.query);
     res.json(actions);
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/actions  (auth required)
 router.post("/", requireAuth, async (req, res, next) => {
   try {
     const { area_id, action_type, notes, complaint_id } = req.body;
@@ -32,6 +30,26 @@ router.post("/", requireAuth, async (req, res, next) => {
       complaint_id,
     });
     res.status(201).json(action);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/:id", requireAuth, validateIdParam("id"), async (req, res, next) => {
+  try {
+    const action = await actionRepository.update(req.params.id, req.body);
+    if (!action) return res.status(404).json({ error: "Authority action not found." });
+    res.json(action);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/:id", requireAuth, validateIdParam("id"), async (req, res, next) => {
+  try {
+    const deleted = await actionRepository.delete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Authority action not found." });
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

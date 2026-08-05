@@ -5,7 +5,8 @@ const citizenRepository = require("./citizen.repository");
 class ComplaintRepository {
   async findAll({ area_id, status, search } = {}) {
     let sql = `
-      SELECT co.*, c.full_name AS citizen_name, c.phone AS citizen_phone,
+      SELECT co.*, c.full_name AS citizen_name, c.full_name AS full_name,
+             c.phone AS citizen_phone, c.phone AS phone, c.email AS citizen_email,
              a.area_name, a.division
       FROM complaint co
       JOIN citizen c ON c.citizen_id = co.citizen_id
@@ -21,8 +22,9 @@ class ComplaintRepository {
       params.push(status);
     }
     if (search) {
-      sql += " AND co.description LIKE ?";
-      params.push(`%${search}%`);
+      sql += " AND (co.description LIKE ? OR c.full_name LIKE ? OR c.phone LIKE ? OR a.area_name LIKE ?)";
+      const q = `%${search}%`;
+      params.push(q, q, q, q);
     }
     sql += " ORDER BY co.reported_at DESC";
 
@@ -38,7 +40,8 @@ class ComplaintRepository {
   async findById(id) {
     return pool.executeWithRetry(async () => {
       const [rows] = await pool.execute(
-        `SELECT co.*, c.full_name AS citizen_name, c.phone AS citizen_phone,
+        `SELECT co.*, c.full_name AS citizen_name, c.full_name AS full_name,
+                c.phone AS citizen_phone, c.phone AS phone, c.email AS citizen_email,
                 a.area_name, a.division
          FROM complaint co
          JOIN citizen c ON c.citizen_id = co.citizen_id

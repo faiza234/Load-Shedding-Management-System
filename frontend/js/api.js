@@ -1,7 +1,8 @@
 /* ============================================================================
-   Load Shedding Management System — API & Auth Client Library
-   Includes support for daily_frequency, areas, complaints, outage schedules,
-   high risk zones, monthly analysis, authority actions, and user area mapping.
+   Load Shedding Management System — API & Auth Client
+   Uses the real Express/MySQL API. Client-side mock data is used only when the
+   backend cannot be reached (network failure or file:// preview), never when
+   the server returns a validation/authentication error.
    ============================================================================ */
 
 const API_BASE = window.API_BASE_URL || "/api";
@@ -12,7 +13,11 @@ const Auth = {
   },
   getUser() {
     const raw = localStorage.getItem("lsms_user");
-    return raw ? JSON.parse(raw) : null;
+    try {
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   },
   setSession(token, user) {
     localStorage.setItem("lsms_token", token);
@@ -24,13 +29,13 @@ const Auth = {
     window.location.href = "login.html";
   },
   isLoggedIn() {
-    return !!this.getToken();
-  }
+    return Boolean(this.getToken());
+  },
 };
 
-function escapeHtml(str) {
-  if (str === null || str === undefined) return "";
-  return String(str)
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -51,299 +56,318 @@ function showToast(message, type = "info") {
   host.appendChild(toast);
   setTimeout(() => {
     toast.style.opacity = "0";
-    toast.style.transition = "opacity 0.3s ease";
+    toast.style.transition = "opacity .3s ease";
     setTimeout(() => toast.remove(), 300);
   }, 3500);
 }
 
-// ---------------------------------------------------------------------------
-// Mock Data Generator for Standalone / Offline Execution
-// ---------------------------------------------------------------------------
-const MOCK_DIVISIONS = ["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"];
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
 
-const MOCK_AREAS = [
-  { area_id: 1, area_name: "Dhaka North", division: "Dhaka", region_type: "Urban", zip_code: "1200" },
-  { area_id: 2, area_name: "Dhaka South", division: "Dhaka", region_type: "Urban", zip_code: "1000" },
-  { area_id: 3, area_name: "Gzipur", division: "Dhaka", region_type: "Semi-Urban", zip_code: "1700" },
-  { area_id: 4, area_name: "Chattogram Sadar", division: "Chattogram", region_type: "Urban", zip_code: "4000" },
-  { area_id: 5, area_name: "Cox's Bazar", division: "Chattogram", region_type: "Semi-Urban", zip_code: "4700" },
-  { area_id: 6, area_name: "Rajshahi City", division: "Rajshahi", region_type: "Urban", zip_code: "6000" },
-  { area_id: 7, area_name: "Bogra Sadar", division: "Rajshahi", region_type: "Semi-Urban", zip_code: "5800" },
-  { area_id: 8, area_name: "Khulna City", division: "Khulna", region_type: "Urban", zip_code: "9000" },
-  { area_id: 9, area_name: "Barishal Sadar", division: "Barishal", region_type: "Urban", zip_code: "8200" },
-  { area_id: 10, area_name: "Sylhet Sadar", division: "Sylhet", region_type: "Urban", zip_code: "3100" },
-  { area_id: 11, area_name: "Rangpur Sadar", division: "Rangpur", region_type: "Urban", zip_code: "5400" },
-  { area_id: 12, area_name: "Mymensingh Sadar", division: "Mymensingh", region_type: "Urban", zip_code: "2200" }
-];
-
-let mockDailyFrequency = [
-  { frequency_id: 1, area_id: 1, date: new Date().toISOString().split("T")[0], outage_count: 4, total_outage_hours: 5.5, avg_outage_duration: 1.38 },
-  { frequency_id: 2, area_id: 2, date: new Date().toISOString().split("T")[0], outage_count: 3, total_outage_hours: 4.0, avg_outage_duration: 1.33 },
-  { frequency_id: 3, area_id: 3, date: new Date().toISOString().split("T")[0], outage_count: 6, total_outage_hours: 8.5, avg_outage_duration: 1.42 },
-  { frequency_id: 4, area_id: 4, date: new Date().toISOString().split("T")[0], outage_count: 5, total_outage_hours: 6.0, avg_outage_duration: 1.20 },
-  { frequency_id: 5, area_id: 5, date: new Date().toISOString().split("T")[0], outage_count: 7, total_outage_hours: 9.5, avg_outage_duration: 1.36 },
-  { frequency_id: 6, area_id: 6, date: new Date().toISOString().split("T")[0], outage_count: 2, total_outage_hours: 2.5, avg_outage_duration: 1.25 },
-  { frequency_id: 7, area_id: 10, date: new Date().toISOString().split("T")[0], outage_count: 5, total_outage_hours: 7.0, avg_outage_duration: 1.40 }
-];
-
-let mockComplaints = [
-  { complaint_id: 101, citizen_id: 1, full_name: "Rahim Uddin", phone: "01711223344", area_id: 1, area_name: "Dhaka North", reported_at: "2026-08-04 14:30", description: "Unscheduled power outage lasted 4 hours outside maintenance slot.", status: "open" },
-  { complaint_id: 102, citizen_id: 2, full_name: "Nusrat Jahan", phone: "01822334455", area_id: 3, area_name: "Gazipur", reported_at: "2026-08-05 09:15", description: "Transformer explosion caused local feeder shutdown.", status: "in_review" },
-  { complaint_id: 103, citizen_id: 3, full_name: "Karim Chowdhury", phone: "01933445566", area_id: 5, area_name: "Cox's Bazar", reported_at: "2026-08-03 18:00", description: "Frequent voltage fluctuations and 5 load shedding cycles today.", status: "resolved", resolution_note: "Feeder load rebalanced by area officer." }
-];
-
-let mockSchedules = [
-  { schedule_id: 1, area_id: 1, area_name: "Dhaka North", schedule_date: new Date().toISOString().split("T")[0], start_time: "10:00", end_time: "12:00", duration_hours: 2.0, reason: "Grid Substation Maintenance" },
-  { schedule_id: 2, area_id: 4, area_name: "Chattogram Sadar", schedule_date: new Date().toISOString().split("T")[0], start_time: "14:00", end_time: "16:30", duration_hours: 2.5, reason: "Feeder Cable Replacement" }
-];
-
-let mockHighRisk = [
-  { zone_id: 1, area_id: 3, area_name: "Gazipur", division: "Dhaka", region_type: "Semi-Urban", month: 8, year: 2026, risk_level: "Critical", flagged_reason: "High industrial load overflow & transformer overheating", flagged_date: "2026-08-01" },
-  { zone_id: 2, area_id: 5, area_name: "Cox's Bazar", division: "Chattogram", region_type: "Semi-Urban", month: 8, year: 2026, risk_level: "High", flagged_reason: "Peak summer tourist demand & supply gap", flagged_date: "2026-08-02" }
-];
-
-let mockUsers = [
-  { user_id: 1, user_name: "admin", role: "admin", contact_email: "admin@lsms.gov.bd", assigned_areas: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { user_id: 2, user_name: "officer.dhaka", role: "officer", contact_email: "officer.dhaka@lsms.gov.bd", assigned_areas: [1,2,3] }
-];
-
-let mockActions = [
-  { action_id: 1, user_id: 2, user_name: "officer.dhaka", area_id: 1, area_name: "Dhaka North", action_type: "Emergency Repair Dispatch", notes: "Dispatched maintenance crew to repair feeder #4 jumper line.", action_time: "2026-08-05 10:30" }
-];
-
-// ---------------------------------------------------------------------------
-// Unified API Call Handler with Server & Offline Fallback Support
-// ---------------------------------------------------------------------------
 async function api(endpoint, options = {}) {
-  const headers = options.headers || {};
-  headers["Content-Type"] = "application/json";
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   const token = Auth.getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   try {
-    const res = await fetch(API_BASE + endpoint, {
+    const response = await fetch(API_BASE + endpoint, {
       method: options.method || "GET",
       headers,
-      body: options.body ? JSON.stringify(options.body) : undefined
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.message || `API request failed (${res.status})`);
+    const text = await response.text();
+    let data = {};
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { error: text };
+      }
     }
-    return await res.json();
-  } catch (err) {
-    // If backend endpoint isn't running, gracefully fulfill with Mock Data
-    console.warn(`[LSMS API] Falling back to client-side mock data for ${endpoint}:`, err.message);
+
+    if (!response.ok) {
+      throw new ApiError(data.error || data.message || `API request failed (${response.status})`, response.status);
+    }
+    return data;
+  } catch (error) {
+    // Server-side errors must be shown to the user; do not pretend they worked.
+    if (error instanceof ApiError) throw error;
+
+    // Network failure / direct file preview only.
+    console.warn(`[LSMS] Backend unavailable; using temporary mock data for ${endpoint}.`, error);
     return handleMockApi(endpoint, options);
   }
 }
 
-function handleMockApi(endpoint, options) {
-  const method = (options.method || "GET").toUpperCase();
-  const urlParts = endpoint.split("?");
-  const path = urlParts[0];
-  const queryStr = urlParts[1] || "";
-  const params = new URLSearchParams(queryStr);
+// ---------------------------------------------------------------------------
+// Offline/demo data. It mirrors the real endpoints used by dashboard.js.
+// ---------------------------------------------------------------------------
+const nowDate = new Date().toISOString().slice(0, 10);
+let mockAreas = [
+  { area_id: 1, area_name: "Dhaka", division: "Dhaka", region_type: "Urban", zip_code: "1200" },
+  { area_id: 2, area_name: "Gazipur", division: "Dhaka", region_type: "Semi-Urban", zip_code: "1700" },
+  { area_id: 3, area_name: "Chattogram", division: "Chattogram", region_type: "Urban", zip_code: "4000" },
+  { area_id: 4, area_name: "Cox's Bazar", division: "Chattogram", region_type: "Semi-Urban", zip_code: "4700" },
+  { area_id: 5, area_name: "Rajshahi", division: "Rajshahi", region_type: "Urban", zip_code: "6000" },
+  { area_id: 6, area_name: "Khulna", division: "Khulna", region_type: "Urban", zip_code: "9000" },
+  { area_id: 7, area_name: "Barishal", division: "Barishal", region_type: "Urban", zip_code: "8200" },
+  { area_id: 8, area_name: "Sylhet", division: "Sylhet", region_type: "Urban", zip_code: "3100" },
+  { area_id: 9, area_name: "Rangpur", division: "Rangpur", region_type: "Urban", zip_code: "5400" },
+  { area_id: 10, area_name: "Mymensingh", division: "Mymensingh", region_type: "Urban", zip_code: "2200" },
+];
+let mockDaily = [
+  { frequency_id: 1, area_id: 1, date: nowDate, outage_count: 4, total_outage_hours: 6, avg_outage_duration: 1.5 },
+  { frequency_id: 2, area_id: 2, date: nowDate, outage_count: 5, total_outage_hours: 7.5, avg_outage_duration: 1.5 },
+];
+let mockComplaints = [
+  { complaint_id: 1, full_name: "Rahim Uddin", phone: "01700000000", area_id: 1, reported_at: `${nowDate} 09:00:00`, description: "Unscheduled outage outside the published window.", status: "open", resolution_note: null },
+  { complaint_id: 2, full_name: "Nusrat Jahan", phone: "01800000000", area_id: 2, reported_at: `${nowDate} 10:00:00`, description: "Transformer sparking near the local feeder.", status: "in_review", resolution_note: null },
+];
+let mockSchedules = [
+  { schedule_id: 1, area_id: 1, schedule_date: nowDate, start_time: "10:00", end_time: "12:00", duration_hours: 2, reason: "Substation maintenance" },
+];
+let mockHighRisk = [
+  { zone_id: 1, area_id: 2, month: 8, year: 2026, risk_level: "Critical", flagged_reason: "Industrial demand exceeds local feeder capacity.", flagged_date: "2026-08-01" },
+  { zone_id: 2, area_id: 4, month: 8, year: 2026, risk_level: "High", flagged_reason: "Seasonal peak demand.", flagged_date: "2026-08-02" },
+  { zone_id: 3, area_id: 5, month: 7, year: 2026, risk_level: "Medium", flagged_reason: "Repeated feeder faults.", flagged_date: "2026-07-10" },
+];
+let mockAnalysis = [
+  { analysis_id: 1, area_id: 1, month: 8, year: 2026, outage_percentage: 12.4, avg_daily_hours: 3.0, total_outages: 32, improvement_status: "improved" },
+  { analysis_id: 2, area_id: 2, month: 8, year: 2026, outage_percentage: 24.8, avg_daily_hours: 6.0, total_outages: 64, improvement_status: "worsened" },
+];
+let mockActions = [
+  { action_id: 1, user_id: 1, user_name: "admin", area_id: 1, action_type: "Site Inspection", notes: "Inspection team dispatched.", action_time: `${nowDate} 11:00:00`, complaint_id: null },
+];
+let mockUsers = [
+  { user_id: 1, user_name: "admin", role: "admin", contact_email: "admin@lsms.gov.bd", assigned_areas: mockAreas.map((area) => area.area_id) },
+  { user_id: 2, user_name: "officer.dhaka", role: "officer", contact_email: "dhaka@lsms.gov.bd", assigned_areas: [1, 2] },
+];
 
-  // Auth / Login
+function nextId(rows, key) {
+  return rows.reduce((max, row) => Math.max(max, Number(row[key]) || 0), 0) + 1;
+}
+
+function withArea(row) {
+  const area = mockAreas.find((item) => Number(item.area_id) === Number(row.area_id)) || {};
+  return { ...row, area_name: area.area_name || `Area #${row.area_id}`, division: area.division || "", region_type: area.region_type || "" };
+}
+
+function parseMockRequest(endpoint, options) {
+  const [path, query = ""] = endpoint.split("?");
+  return {
+    path,
+    params: new URLSearchParams(query),
+    method: String(options.method || "GET").toUpperCase(),
+    body: options.body || {},
+  };
+}
+
+function handleMockApi(endpoint, options = {}) {
+  const { path, params, method, body } = parseMockRequest(endpoint, options);
+
   if (path === "/auth/login" && method === "POST") {
-    const { user_name, password } = options.body;
-    if (password === "password123" || password.length >= 4) {
-      const user = mockUsers.find(u => u.user_name === user_name) || { user_id: 99, user_name, role: "officer", assigned_areas: [1,2] };
-      return { token: "mock_jwt_token_" + Date.now(), user };
-    }
-    throw new Error("Invalid credentials. (Demo password: password123)");
+    const user = mockUsers.find((item) => item.user_name === body.user_name) || mockUsers[0];
+    return { token: `mock-token-${Date.now()}`, user };
   }
 
-  // Summary Analytics
-  if (path === "/analytics/summary") {
-    const openComplaints = mockComplaints.filter(c => c.status === "open" || c.status === "in_review").length;
+  if (path === "/analytics/summary" && method === "GET") {
+    const latestPeriod = mockHighRisk.reduce((max, row) => Math.max(max, row.year * 12 + row.month), 0);
     return {
-      totalDistricts: MOCK_AREAS.length,
-      openComplaints,
-      highRiskCount: mockHighRisk.length,
-      avgOutagePct: 14.5
+      totalAreas: mockAreas.length,
+      totalDistricts: mockAreas.length,
+      openComplaints: mockComplaints.filter((row) => ["open", "in_review"].includes(row.status)).length,
+      highRiskCount: mockHighRisk.filter((row) => row.year * 12 + row.month === latestPeriod).length,
+      avgOutagePct: mockAnalysis.length ? Number((mockAnalysis.reduce((sum, row) => sum + Number(row.outage_percentage), 0) / mockAnalysis.length).toFixed(1)) : 0,
+      byDivision: [],
+      topComplaintAreas: [],
     };
   }
 
-  // Areas
   if (path === "/areas") {
-    if (method === "GET") return MOCK_AREAS;
+    if (method === "GET") return [...mockAreas];
     if (method === "POST") {
-      const newArea = { area_id: MOCK_AREAS.length + 1, ...options.body };
-      MOCK_AREAS.push(newArea);
-      return newArea;
+      if (mockAreas.some((row) => row.area_name.toLowerCase() === String(body.area_name).toLowerCase())) throw new Error("An area with that name already exists.");
+      const row = { area_id: nextId(mockAreas, "area_id"), ...body };
+      mockAreas.push(row);
+      return row;
+    }
+  }
+  if (/^\/areas\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockAreas.findIndex((row) => row.area_id === id);
+    if (index < 0) throw new Error("Area not found.");
+    if (method === "GET") return mockAreas[index];
+    if (method === "PUT") return (mockAreas[index] = { ...mockAreas[index], ...body, area_id: id });
+    if (method === "DELETE") {
+      mockAreas.splice(index, 1);
+      return { success: true };
     }
   }
 
-  // Daily Frequency (daily_frequency)
-  if (path.startsWith("/daily-frequency")) {
-    if (method === "GET") {
-      let list = mockDailyFrequency.map(df => {
-        const area = MOCK_AREAS.find(a => a.area_id === df.area_id) || {};
-        return {
-          ...df,
-          area_name: area.area_name || `District #${df.area_id}`,
-          division: area.division || "Dhaka",
-          region_type: area.region_type || "Urban"
-        };
-      });
-      const areaFilter = params.get("area_id");
-      const dateFilter = params.get("date");
-      if (areaFilter) list = list.filter(df => df.area_id == areaFilter);
-      if (dateFilter) list = list.filter(df => df.date === dateFilter);
-      return list;
-    }
+  if (path === "/analytics/daily") {
+    if (method === "GET") return mockDaily.map(withArea);
     if (method === "POST") {
-      const { area_id, date, outage_count, total_outage_hours } = options.body;
-      const count = Number(outage_count) || 0;
-      const hours = Number(total_outage_hours) || 0;
-      const avg = count > 0 ? Number((hours / count).toFixed(2)) : 0;
-
-      const existingIdx = mockDailyFrequency.findIndex(df => df.area_id == area_id && df.date === date);
-      let newItem;
-      if (existingIdx >= 0) {
-        mockDailyFrequency[existingIdx] = {
-          ...mockDailyFrequency[existingIdx],
-          outage_count: count,
-          total_outage_hours: hours,
-          avg_outage_duration: avg
-        };
-        newItem = mockDailyFrequency[existingIdx];
-      } else {
-        newItem = {
-          frequency_id: mockDailyFrequency.length + 1,
-          area_id: Number(area_id),
-          date,
-          outage_count: count,
-          total_outage_hours: hours,
-          avg_outage_duration: avg
-        };
-        mockDailyFrequency.unshift(newItem);
-      }
-      return newItem;
+      const count = Number(body.outage_count);
+      const hours = Number(body.total_outage_hours);
+      const row = { frequency_id: nextId(mockDaily, "frequency_id"), ...body, avg_outage_duration: count ? Number((hours / count).toFixed(2)) : 0 };
+      mockDaily.push(row);
+      return withArea(row);
     }
   }
-
-  // Complaints
-  if (path.startsWith("/complaints")) {
-    if (method === "GET") {
-      return mockComplaints.map(c => {
-        const area = MOCK_AREAS.find(a => a.area_id === c.area_id) || {};
-        return { ...c, area_name: area.area_name || "District #" + c.area_id, division: area.division };
-      });
-    }
-    if (method === "POST") {
-      const area = MOCK_AREAS.find(a => a.area_id === options.body.area_id) || {};
-      const newC = {
-        complaint_id: mockComplaints.length + 101,
-        citizen_id: Math.floor(Math.random() * 900) + 100,
-        ...options.body,
-        area_name: area.area_name || "District",
-        reported_at: new Date().toISOString().replace("T", " ").substring(0, 16),
-        status: "open"
-      };
-      mockComplaints.unshift(newC);
-      return newC;
-    }
+  if (/^\/analytics\/daily\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockDaily.findIndex((row) => row.frequency_id === id);
+    if (index < 0) throw new Error("Daily record not found.");
     if (method === "PUT") {
-      const parts = path.split("/");
-      const id = Number(parts[parts.length - 1]);
-      const idx = mockComplaints.findIndex(c => c.complaint_id === id);
-      if (idx >= 0) {
-        mockComplaints[idx] = { ...mockComplaints[idx], ...options.body };
-        return mockComplaints[idx];
-      }
+      const merged = { ...mockDaily[index], ...body };
+      merged.avg_outage_duration = merged.outage_count ? Number((Number(merged.total_outage_hours) / Number(merged.outage_count)).toFixed(2)) : 0;
+      mockDaily[index] = merged;
+      return withArea(merged);
+    }
+    if (method === "DELETE") {
+      mockDaily.splice(index, 1);
+      return { success: true };
     }
   }
 
-  // Schedules
+  if (path === "/complaints") {
+    if (method === "GET") return mockComplaints.map(withArea);
+    if (method === "POST") {
+      const row = { complaint_id: nextId(mockComplaints, "complaint_id"), ...body, reported_at: new Date().toISOString().replace("T", " ").slice(0, 19), status: "open", resolution_note: null };
+      mockComplaints.unshift(row);
+      return withArea(row);
+    }
+  }
+  if (/^\/complaints\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockComplaints.findIndex((row) => row.complaint_id === id);
+    if (index < 0) throw new Error("Complaint not found.");
+    if (method === "PUT") return (mockComplaints[index] = { ...mockComplaints[index], ...body });
+    if (method === "DELETE") {
+      mockComplaints.splice(index, 1);
+      return { success: true };
+    }
+  }
+
   if (path === "/schedules") {
+    if (method === "GET") return mockSchedules.map(withArea);
+    if (method === "POST") {
+      const row = { schedule_id: nextId(mockSchedules, "schedule_id"), ...body };
+      mockSchedules.push(row);
+      return withArea(row);
+    }
+  }
+  if (/^\/schedules\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockSchedules.findIndex((row) => row.schedule_id === id);
+    if (index < 0) throw new Error("Schedule not found.");
+    if (method === "PUT") return withArea((mockSchedules[index] = { ...mockSchedules[index], ...body }));
+    if (method === "DELETE") {
+      mockSchedules.splice(index, 1);
+      return { success: true };
+    }
+  }
+
+  if (path === "/analytics/high-risk") {
     if (method === "GET") {
-      return mockSchedules.map(s => {
-        const area = MOCK_AREAS.find(a => a.area_id === s.area_id) || {};
-        return { ...s, area_name: area.area_name || "District #" + s.area_id };
-      });
+      let rows = [...mockHighRisk];
+      const year = params.get("year");
+      const month = params.get("month");
+      if (year) rows = rows.filter((row) => Number(row.year) === Number(year));
+      if (month) rows = rows.filter((row) => Number(row.month) === Number(month));
+      return rows.map(withArea);
     }
     if (method === "POST") {
-      const area = MOCK_AREAS.find(a => a.area_id === options.body.area_id) || {};
-      const newS = { schedule_id: mockSchedules.length + 1, ...options.body, area_name: area.area_name };
-      mockSchedules.unshift(newS);
-      return newS;
+      const row = { zone_id: nextId(mockHighRisk, "zone_id"), ...body };
+      mockHighRisk.push(row);
+      return withArea(row);
+    }
+  }
+  if (/^\/analytics\/high-risk\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockHighRisk.findIndex((row) => row.zone_id === id);
+    if (index < 0) throw new Error("High-risk record not found.");
+    if (method === "PUT") return withArea((mockHighRisk[index] = { ...mockHighRisk[index], ...body }));
+    if (method === "DELETE") {
+      mockHighRisk.splice(index, 1);
+      return { success: true };
     }
   }
 
-  // High Risk Zones
-  if (path === "/high-risk") {
-    if (method === "GET") return mockHighRisk;
+  if (path === "/analytics/monthly") {
+    if (method === "GET") return mockAnalysis.map(withArea);
     if (method === "POST") {
-      const area = MOCK_AREAS.find(a => a.area_id === options.body.area_id) || {};
-      const newR = {
-        zone_id: mockHighRisk.length + 1,
-        ...options.body,
-        area_name: area.area_name,
-        division: area.division,
-        region_type: area.region_type
-      };
-      mockHighRisk.unshift(newR);
-      return newR;
+      const row = { analysis_id: nextId(mockAnalysis, "analysis_id"), ...body };
+      mockAnalysis.push(row);
+      return withArea(row);
+    }
+  }
+  if (/^\/analytics\/monthly\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockAnalysis.findIndex((row) => row.analysis_id === id);
+    if (index < 0) throw new Error("Monthly analysis not found.");
+    if (method === "PUT") return withArea((mockAnalysis[index] = { ...mockAnalysis[index], ...body }));
+    if (method === "DELETE") {
+      mockAnalysis.splice(index, 1);
+      return { success: true };
     }
   }
 
-  // Actions
   if (path === "/actions") {
-    if (method === "GET") return mockActions;
+    if (method === "GET") return mockActions.map(withArea);
     if (method === "POST") {
-      const user = Auth.getUser() || { user_name: "officer" };
-      const area = MOCK_AREAS.find(a => a.area_id === options.body.area_id) || {};
-      const newA = {
-        action_id: mockActions.length + 1,
-        user_id: user.user_id || 1,
-        user_name: user.user_name,
-        ...options.body,
-        area_name: area.area_name,
-        action_time: new Date().toISOString().replace("T", " ").substring(0, 16)
-      };
-      mockActions.unshift(newA);
-      return newA;
+      const user = Auth.getUser() || mockUsers[0];
+      const row = { action_id: nextId(mockActions, "action_id"), user_id: user.user_id, user_name: user.user_name, action_time: new Date().toISOString().replace("T", " ").slice(0, 19), complaint_id: null, ...body };
+      mockActions.unshift(row);
+      return withArea(row);
+    }
+  }
+  if (/^\/actions\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockActions.findIndex((row) => row.action_id === id);
+    if (index < 0) throw new Error("Authority action not found.");
+    if (method === "PUT") return withArea((mockActions[index] = { ...mockActions[index], ...body }));
+    if (method === "DELETE") {
+      mockActions.splice(index, 1);
+      return { success: true };
     }
   }
 
-  // Users
   if (path === "/users") {
     if (method === "GET") return mockUsers;
     if (method === "POST") {
-      const newUser = { user_id: mockUsers.length + 1, ...options.body, assigned_areas: [] };
-      mockUsers.push(newUser);
-      return newUser;
+      const row = { user_id: nextId(mockUsers, "user_id"), user_name: body.user_name, role: body.role || "officer", contact_email: body.contact_email || null, assigned_areas: [] };
+      mockUsers.push(row);
+      return row;
     }
   }
-
-  // User Area Assignments (M:N)
-  if (path.startsWith("/users/") && path.endsWith("/areas")) {
-    const parts = path.split("/");
-    const userId = Number(parts[2]);
-    const u = mockUsers.find(user => user.user_id === userId);
-    if (method === "GET") return u ? u.assigned_areas : [];
+  if (/^\/users\/\d+\/areas$/.test(path)) {
+    const id = Number(path.split("/")[2]);
+    const user = mockUsers.find((row) => row.user_id === id);
+    if (!user) throw new Error("User not found.");
+    if (method === "GET") return user.assigned_areas.map((areaId) => withArea({ area_id: areaId }));
     if (method === "PUT") {
-      if (u) u.assigned_areas = options.body.area_ids || [];
-      return { success: true, assigned_areas: u ? u.assigned_areas : [] };
+      user.assigned_areas = (body.area_ids || []).map(Number);
+      return { user_id: id, assigned_areas: user.assigned_areas };
+    }
+  }
+  if (/^\/users\/\d+$/.test(path)) {
+    const id = Number(path.split("/").pop());
+    const index = mockUsers.findIndex((row) => row.user_id === id);
+    if (index < 0) throw new Error("User not found.");
+    if (method === "GET") return mockUsers[index];
+    if (method === "PUT") return (mockUsers[index] = { ...mockUsers[index], ...body, user_id: id });
+    if (method === "DELETE") {
+      mockUsers.splice(index, 1);
+      return { success: true };
     }
   }
 
-  // Monthly Analysis
-  if (path.startsWith("/monthly-analysis")) {
-    return [
-      { analysis_id: 1, area_id: 1, area_name: "Dhaka North", division: "Dhaka", month: 8, year: 2026, outage_percentage: 12.4, avg_daily_hours: 3.0, total_outages: 32, improvement_status: "improved" },
-      { analysis_id: 2, area_id: 2, area_name: "Dhaka South", division: "Dhaka", month: 8, year: 2026, outage_percentage: 14.1, avg_daily_hours: 3.4, total_outages: 38, improvement_status: "stable" },
-      { analysis_id: 3, area_id: 3, area_name: "Gazipur", division: "Dhaka", month: 8, year: 2026, outage_percentage: 24.8, avg_daily_hours: 6.0, total_outages: 64, improvement_status: "worsened" },
-      { analysis_id: 4, area_id: 4, area_name: "Chattogram Sadar", division: "Chattogram", month: 8, year: 2026, outage_percentage: 16.5, avg_daily_hours: 4.0, total_outages: 42, improvement_status: "stable" },
-      { analysis_id: 5, area_id: 5, area_name: "Cox's Bazar", division: "Chattogram", month: 8, year: 2026, outage_percentage: 18.2, avg_daily_hours: 4.4, total_outages: 45, improvement_status: "worsened" },
-      { analysis_id: 6, area_id: 6, area_name: "Rajshahi City", division: "Rajshahi", month: 8, year: 2026, outage_percentage: 10.5, avg_daily_hours: 2.5, total_outages: 26, improvement_status: "improved" },
-      { analysis_id: 7, area_id: 10, area_name: "Sylhet Sadar", division: "Sylhet", month: 8, year: 2026, outage_percentage: 15.0, avg_daily_hours: 3.6, total_outages: 35, improvement_status: "improved" }
-    ];
-  }
-
-  return [];
+  throw new Error(`No mock handler for ${method} ${path}`);
 }

@@ -1,8 +1,20 @@
 // repositories/schedule.repository.js
 const pool = require("../db/pool");
 
+function calculateDurationHours(startTime, endTime) {
+  if (!startTime || !endTime) return null;
+  const [sh, sm] = String(startTime).split(":").map(Number);
+  const [eh, em] = String(endTime).split(":").map(Number);
+  if (![sh, sm, eh, em].every(Number.isFinite)) return null;
+
+  let startMinutes = sh * 60 + sm;
+  let endMinutes = eh * 60 + em;
+  if (endMinutes <= startMinutes) endMinutes += 24 * 60; // overnight window
+  return Number(((endMinutes - startMinutes) / 60).toFixed(1));
+}
+
 class ScheduleRepository {
-  async findAll({ area_id, from, to } = {}) {
+  async findAll({ area_id, from, to, search } = {}) {
     let sql = `
       SELECT s.*, a.area_name, a.division, u.user_name AS created_by_name
       FROM outage_schedule s
@@ -10,6 +22,7 @@ class ScheduleRepository {
       LEFT JOIN authority_user u ON u.user_id = s.created_by
       WHERE 1=1`;
     const params = [];
+
     if (area_id) {
       sql += " AND s.area_id = ?";
       params.push(area_id);
@@ -22,7 +35,13 @@ class ScheduleRepository {
       sql += " AND s.schedule_date <= ?";
       params.push(to);
     }
-    sql += " ORDER BY s.schedule_date DESC, s.start_time";
+    if (search) {
+      sql += " AND (a.area_name LIKE ? OR a.division LIKE ? OR s.reason LIKE ?)";
+      const q = `%${search}%`;
+      params.push(q, q, q);
+    }
+
+    sql += " ORDER BY s.schedule_date DESC, s.start_time, a.area_name";
 
     return pool.executeWithRetry(async () => {
       const [rows] = await pool.execute(sql, params);
@@ -45,11 +64,13 @@ class ScheduleRepository {
   }
 
   async create({ area_id, schedule_date, start_time, end_time, duration_hours, reason, created_by }) {
+    const duration = calculateDurationHours(start_time, end_time) ?? Number(duration_hours);
     return pool.executeWithRetry(async () => {
       const [result] = await pool.execute(
-        `INSERT INTO outage_schedule (area_id, schedule_date, start_time, end_time, duration_hours, reason, created_by)
+        `INSERT INTO outage_schedule
+          (area_id, schedule_date, start_time, end_time, duration_hours, reason, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [area_id, schedule_date, start_time, end_time, duration_hours, reason || null, created_by || null]
+        [area_id, schedule_date, start_time, end_time, duration, reason || null, created_by || null]
       );
       return this.findById(result.insertId);
     });
@@ -65,9 +86,11 @@ class ScheduleRepository {
         schedule_date: scheduleData.schedule_date ?? existing.schedule_date,
         start_time: scheduleData.start_time ?? existing.start_time,
         end_time: scheduleData.end_time ?? existing.end_time,
-        duration_hours: scheduleData.duration_hours ?? existing.duration_hours,
         reason: scheduleData.reason !== undefined ? scheduleData.reason : existing.reason,
       };
+      merged.duration_hours =
+        calculateDurationHours(merged.start_time, merged.end_time) ??
+        Number(scheduleData.duration_hours ?? existing.duration_hours);
 
       await pool.execute(
         `UPDATE outage_schedule
@@ -90,10 +113,8 @@ class ScheduleRepository {
 
   async delete(id) {
     return pool.executeWithRetry(async () => {
-      const existing = await this.findById(id);
-      if (!existing) return false;
-      await pool.execute("DELETE FROM outage_schedule WHERE schedule_id = ?", [id]);
-      return true;
+      const [result] = await pool.execute("DELETE FROM outage_schedule WHERE schedule_id = ?", [id]);
+      return result.affectedRows > 0;
     });
   }
 }

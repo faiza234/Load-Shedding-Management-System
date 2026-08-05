@@ -32,8 +32,8 @@ router.get("/:id", validateIdParam("id"), async (req, res, next) => {
 router.post("/", requireAuth, async (req, res, next) => {
   try {
     const { area_id, schedule_date, start_time, end_time, duration_hours, reason } = req.body;
-    if (!area_id || !schedule_date || !start_time || !end_time || !duration_hours) {
-      return res.status(400).json({ error: "area_id, schedule_date, start_time, end_time, duration_hours are required." });
+    if (!area_id || !schedule_date || !start_time || !end_time) {
+      return res.status(400).json({ error: "area_id, schedule_date, start_time and end_time are required." });
     }
 
     const schedule = await scheduleRepository.create({
