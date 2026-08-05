@@ -122,6 +122,13 @@
               <input type="date" id="dailyfreq-date-filter" />
               <select id="dailyfreq-area-filter"><option value="">All districts</option></select>
               <input type="text" id="dailyfreq-search" placeholder="Search district..." />
+              <select id="dailyfreq-sort" aria-label="Sort daily frequency">
+                <option value="date:desc">Newest date</option>
+                <option value="date:asc">Oldest date</option>
+                <option value="area_name:asc">District A–Z</option>
+                <option value="outage_count:desc">Highest outage count</option>
+                <option value="total_outage_hours:desc">Highest outage hours</option>
+              </select>
               <button class="btn-sm primary" id="add-dailyfreq-btn">+ Record Daily Outage</button>
             </div>
           </div>
@@ -172,6 +179,14 @@
                 <option value="">All region types</option>
                 <option>Urban</option><option>Semi-Urban</option><option>Rural</option>
               </select>
+              <select id="area-sort" aria-label="Sort areas">
+                <option value="division:asc">Division A–Z</option>
+                <option value="area_name:asc">District A–Z</option>
+                <option value="area_name:desc">District Z–A</option>
+                <option value="region_type:asc">Region type</option>
+                <option value="area_id:asc">ID low–high</option>
+                <option value="area_id:desc">ID high–low</option>
+              </select>
               <button class="btn-sm primary" id="add-area-btn">+ Add Area</button>
             </div>
           </div>
@@ -197,6 +212,13 @@
                 <option value="resolved">Resolved History</option>
                 <option value="rejected">Rejected History</option>
               </select>
+              <select id="complaint-sort" aria-label="Sort complaints">
+                <option value="reported_at:desc">Newest first</option>
+                <option value="reported_at:asc">Oldest first</option>
+                <option value="area_name:asc">District A–Z</option>
+                <option value="status:asc">Status</option>
+              </select>
+              <button class="btn-sm primary" id="add-complaint-btn">+ Add Complaint</button>
             </div>
           </div>
 
@@ -253,9 +275,16 @@
           <div class="panel-head">
             <h3>Outage Schedules</h3>
             <div class="toolbar">
+              <input type="text" id="schedule-search" placeholder="Search area or reason..." />
               <select id="schedule-area-filter"><option value="">All areas</option></select>
-              <input type="date" id="schedule-from" />
-              <input type="date" id="schedule-to" />
+              <input type="date" id="schedule-from" title="From date" />
+              <input type="date" id="schedule-to" title="To date" />
+              <select id="schedule-sort" aria-label="Sort schedules">
+                <option value="schedule_date:desc">Newest date</option>
+                <option value="schedule_date:asc">Oldest date</option>
+                <option value="area_name:asc">District A–Z</option>
+                <option value="duration_hours:desc">Longest duration</option>
+              </select>
               <button class="btn-sm primary" id="add-schedule-btn">+ New Schedule</button>
             </div>
           </div>
@@ -272,6 +301,29 @@
               <div class="desc text-muted" style="font-size:12px;">Auto-calculated or manually flagged high risk districts requiring priority monitoring</div>
             </div>
             <div class="toolbar">
+              <input type="text" id="highrisk-search" placeholder="Search district or reason..." />
+              <select id="highrisk-level-filter">
+                <option value="">All risk levels</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+              <select id="highrisk-year-filter"><option value="">All years</option></select>
+              <select id="highrisk-month-filter">
+                <option value="">All months</option>
+                <option value="1">January</option><option value="2">February</option>
+                <option value="3">March</option><option value="4">April</option>
+                <option value="5">May</option><option value="6">June</option>
+                <option value="7">July</option><option value="8">August</option>
+                <option value="9">September</option><option value="10">October</option>
+                <option value="11">November</option><option value="12">December</option>
+              </select>
+              <select id="highrisk-sort">
+                <option value="period:desc">Latest period</option>
+                <option value="risk:desc">Highest risk first</option>
+                <option value="area_name:asc">District A–Z</option>
+              </select>
               <button class="btn-sm primary" id="add-highrisk-btn">🚩 + Flag High Risk Zone</button>
             </div>
           </div>
@@ -286,6 +338,23 @@
             <h3>Monthly Analysis</h3>
             <div class="toolbar">
               <select id="analysis-area-filter"></select>
+              <select id="analysis-year-filter"><option value="">All years</option></select>
+              <select id="analysis-month-filter">
+                <option value="">All months</option>
+                <option value="1">January</option><option value="2">February</option>
+                <option value="3">March</option><option value="4">April</option>
+                <option value="5">May</option><option value="6">June</option>
+                <option value="7">July</option><option value="8">August</option>
+                <option value="9">September</option><option value="10">October</option>
+                <option value="11">November</option><option value="12">December</option>
+              </select>
+              <select id="analysis-sort">
+                <option value="period:desc">Latest period</option>
+                <option value="outage_percentage:desc">Highest outage %</option>
+                <option value="area_name:asc">District A–Z</option>
+                <option value="total_outages:desc">Highest outage count</option>
+              </select>
+              <button class="btn-sm primary" id="add-analysis-btn">+ Add Analysis</button>
             </div>
           </div>
           <div class="panel-body"><canvas id="chart-analysis" height="220"></canvas></div>
@@ -303,6 +372,7 @@
             </div>
             <div class="panel-body">
               <form id="action-form">
+                <input type="hidden" id="action-id" />
                 <div class="field">
                   <label for="action-area">Target Area (District)</label>
                   <select id="action-area" required></select>
@@ -324,7 +394,10 @@
                   <label for="action-notes">Dispatch Notes & Details</label>
                   <textarea id="action-notes" rows="4" placeholder="Enter technical dispatch notes, feeder numbers, or maintenance details..."></textarea>
                 </div>
-                <button type="submit" class="btn-sm primary w-full">⚡ Log & Dispatch Action</button>
+                <div class="row-actions">
+                  <button type="submit" class="btn-sm primary w-full" id="action-submit-btn">⚡ Log & Dispatch Action</button>
+                  <button type="button" class="btn-sm" id="action-cancel-edit-btn" style="display:none;">Cancel edit</button>
+                </div>
               </form>
             </div>
           </div>
@@ -333,6 +406,8 @@
             <div class="panel-head">
               <h3>Authority Operations Feed</h3>
               <div class="toolbar">
+                <input type="text" id="action-search" placeholder="Search actions..." />
+                <select id="action-area-filter"><option value="">All areas</option></select>
                 <select id="action-type-filter" style="font-size:12px; padding:4px 8px;">
                   <option value="">All Action Types</option>
                   <option>Emergency Repair Dispatch</option>
@@ -342,6 +417,13 @@
                   <option>Substation Audit</option>
                   <option>Public Notice Issued</option>
                   <option>Site Inspection</option>
+                  <option>Complaint Review</option>
+                </select>
+                <select id="action-sort">
+                  <option value="action_time:desc">Newest first</option>
+                  <option value="action_time:asc">Oldest first</option>
+                  <option value="area_name:asc">District A–Z</option>
+                  <option value="action_type:asc">Action type</option>
                 </select>
               </div>
             </div>
@@ -363,6 +445,19 @@
               <div class="desc text-muted" style="font-size:12px;">Manage authority users and independently assign or unassign district areas</div>
             </div>
             <div class="toolbar">
+              <input type="text" id="user-search" placeholder="Search username or email..." />
+              <select id="user-role-filter">
+                <option value="">All roles</option>
+                <option value="admin">Admin</option>
+                <option value="officer">Officer</option>
+              </select>
+              <select id="user-sort">
+                <option value="user_name:asc">Username A–Z</option>
+                <option value="user_name:desc">Username Z–A</option>
+                <option value="role:asc">Role</option>
+                <option value="assigned:desc">Most assigned areas</option>
+                <option value="user_id:desc">Newest ID</option>
+              </select>
               <button class="btn-sm primary" id="add-user-btn">+ Add User Account</button>
             </div>
           </div>
@@ -494,6 +589,43 @@
   </div>
 </div>
 
+<!-- Create Complaint Modal -->
+<div class="modal-backdrop" id="complaint-create-modal">
+  <div class="modal">
+    <h3>Add Citizen Complaint</h3>
+    <p class="sub">Register the citizen and complaint together.</p>
+    <div class="form-error" id="complaint-create-error"></div>
+    <form id="complaint-create-form">
+      <div class="field-row">
+        <div class="field">
+          <label for="complaint-create-name">Citizen full name</label>
+          <input type="text" id="complaint-create-name" required />
+        </div>
+        <div class="field">
+          <label for="complaint-create-phone">Phone</label>
+          <input type="text" id="complaint-create-phone" placeholder="01XXXXXXXXX" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="complaint-create-email">Email</label>
+        <input type="email" id="complaint-create-email" />
+      </div>
+      <div class="field">
+        <label for="complaint-create-area">Area</label>
+        <select id="complaint-create-area" required></select>
+      </div>
+      <div class="field">
+        <label for="complaint-create-description">Description</label>
+        <textarea id="complaint-create-description" rows="4" required></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="complaint-create-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Save complaint</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Schedule modal -->
 <div class="modal-backdrop" id="schedule-modal">
   <div class="modal">
@@ -616,6 +748,16 @@
       </div>
       <div class="field-row">
         <div class="field">
+          <label for="highrisk-month">Month</label>
+          <input type="number" min="1" max="12" id="highrisk-month" required />
+        </div>
+        <div class="field">
+          <label for="highrisk-year">Year</label>
+          <input type="number" min="2000" max="2100" id="highrisk-year" required />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
           <label for="highrisk-level">Risk Level</label>
           <select id="highrisk-level" required>
             <option value="Critical">Critical</option>
@@ -641,6 +783,59 @@
   </div>
 </div>
 
+<!-- Monthly Analysis Modal -->
+<div class="modal-backdrop" id="analysis-modal">
+  <div class="modal">
+    <h3 id="analysis-modal-title">Add Monthly Analysis</h3>
+    <div class="form-error" id="analysis-form-error"></div>
+    <form id="analysis-form">
+      <input type="hidden" id="analysis-id" />
+      <div class="field">
+        <label for="analysis-area">Area</label>
+        <select id="analysis-area" required></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="analysis-month">Month</label>
+          <input type="number" id="analysis-month" min="1" max="12" required />
+        </div>
+        <div class="field">
+          <label for="analysis-year">Year</label>
+          <input type="number" id="analysis-year" min="2000" max="2100" required />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="analysis-outage-pct">Outage percentage</label>
+          <input type="number" id="analysis-outage-pct" step="0.01" min="0" max="100" required />
+        </div>
+        <div class="field">
+          <label for="analysis-avg-hours">Average daily hours</label>
+          <input type="number" id="analysis-avg-hours" step="0.01" min="0" required />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="analysis-total-outages">Total outages</label>
+          <input type="number" id="analysis-total-outages" min="0" required />
+        </div>
+        <div class="field">
+          <label for="analysis-status">Improvement status</label>
+          <select id="analysis-status" required>
+            <option value="improved">Improved</option>
+            <option value="stable">Stable</option>
+            <option value="worsened">Worsened</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="analysis-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Save analysis</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Authority User Create/Edit Modal -->
 <div class="modal-backdrop" id="user-modal">
   <div class="modal">
@@ -654,8 +849,8 @@
         <input type="text" id="user-username-input" required placeholder="e.g. officer.dhaka" />
       </div>
       <div class="field">
-        <label for="user-password-input">Password</label>
-        <input type="password" id="user-password-input" required placeholder="Account password" />
+        <label for="user-password-input">Password <span id="user-password-hint">(required for new user)</span></label>
+        <input type="password" id="user-password-input" placeholder="Account password" />
       </div>
       <div class="field-row">
         <div class="field">

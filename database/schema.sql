@@ -6,7 +6,6 @@
 -- starting the backend server or running the seed script.
 --
 --   mysql -u root -p < schema.sql
---k67
 -- It creates the database, all 10 tables (matching the ER diagram / relational
 -- schema), their constraints, two views, one stored procedure, and one
 -- trigger. Safe to re-run: it drops the database first if it already exists.
