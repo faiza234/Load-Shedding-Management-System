@@ -1,0 +1,21 @@
+{
+  "name": "load-shedding-management-backend",
+  "version": "1.0.0",
+  "description": "Backend API + static frontend server for the Bangladesh Load Shedding Management System",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "seed": "node db/seed.js",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.0"
+  }
+}

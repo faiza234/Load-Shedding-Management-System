@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Load Shedding Management System — Bangladesh</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="landing">
+  <header class="landing-header">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5H11L10 22L19 9.5H12.5L13 2Z"/></svg>
+      LSMS · Bangladesh
+    </div>
+    <a href="login.html" class="btn btn-ghost">Authority Login</a>
+  </header>
+
+  <div class="landing-hero">
+    <div class="eyebrow">National Grid Monitoring · 64 Districts</div>
+    <h1>Tracking every <span>load shed</span>,<br/>district by district.</h1>
+    <p class="landing-sub">
+      A shared dashboard for utility authorities and citizens to track daily outage frequency, schedule outages,
+      flag high-risk zones, and resolve complaints — across all 8 divisions of Bangladesh.
+    </p>
+
+    <div class="cta-row">
+      <a href="complaint.html" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        File a Complaint
+      </a>
+      <a href="login.html" class="btn btn-ghost">Authority Dashboard →</a>
+    </div>
+
+    <div class="stat-strip" id="stat-strip">
+      <div class="stat"><div class="stat-num">64</div><div class="stat-label">Districts monitored</div></div>
+      <div class="stat"><div class="stat-num">0</div><div class="stat-label">Open complaints</div></div>
+      <div class="stat"><div class="stat-num">2</div><div class="stat-label">High-risk zones</div></div>
+      <div class="stat"><div class="stat-num">14.5%</div><div class="stat-label">Avg. outage rate</div></div>
+    </div>
+  </div>
+
+  <div class="pulse-line" style="border-top:1px solid var(--border);">
+    <svg viewBox="0 0 400 34" preserveAspectRatio="none">
+      <path d="M0,17 L40,17 L52,4 L64,30 L76,17 L400,17 L440,17 L452,4 L464,30 L476,17 L800,17"
+            fill="none" stroke="#f2a93b" stroke-width="1.5" opacity="0.55"/>
+    </svg>
+  </div>
+
+  <footer class="landing-footer">
+    Load Shedding Management System — a district-level outage &amp; complaint tracker for Bangladesh.
+  </footer>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  (async function () {
+    try {
+      const s = await api("/analytics/summary");
+      const nums = document.querySelectorAll("#stat-strip .stat-num");
+      if (nums[1]) nums[1].textContent = s.openComplaints;
+      if (nums[2]) nums[2].textContent = s.highRiskCount;
+      if (nums[3]) nums[3].textContent = s.avgOutagePct + "%";
+    } catch (e) { }
+  })();
+</script>
+</body>
+</html>

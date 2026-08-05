@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — LSMS Bangladesh</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#f2a93b"><path d="M13 2L4.5 13.5H11L10 22L19 9.5H12.5L13 2Z"/></svg>
+      LSMS
+    </div>
+    <nav class="nav" id="nav">
+      <a href="#overview" class="nav-item" data-section="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Overview
+      </a>
+      <a href="#dailyfreq" class="nav-item" data-section="dailyfreq">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        Daily Frequency
+      </a>
+      <a href="#areas" class="nav-item" data-section="areas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6l8-4 8 4-8 4-8-4zM1 6v12l8 4M17 6v12l-8 4"/></svg>
+        Areas (Districts)
+      </a>
+      <a href="#complaints" class="nav-item" data-section="complaints">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Complaints
+      </a>
+      <a href="#schedules" class="nav-item" data-section="schedules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Outage Schedules
+      </a>
+      <a href="#highrisk" class="nav-item" data-section="highrisk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>
+        High Risk Zones
+      </a>
+      <a href="#analysis" class="nav-item" data-section="analysis">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>
+        Monthly Analysis
+      </a>
+      <a href="#actions" class="nav-item" data-section="actions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Authority Actions
+      </a>
+      <a href="#users" class="nav-item" data-section="users" id="nav-users">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Authority Users
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name">-</div>
+          <div class="user-role" id="user-role">-</div>
+        </div>
+      </div>
+      <a href="#" id="logout-btn" class="logout-link">Log out</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="section-title">Overview</h2>
+        <div class="desc" id="section-desc">National snapshot across all 64 districts</div>
+      </div>
+      <div class="toolbar" id="topbar-actions"></div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section id="sec-overview" class="section">
+        <div class="card-grid" id="overview-cards"></div>
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-head"><h3>Avg. outage % by division (this month)</h3></div>
+            <div class="panel-body"><canvas id="chart-division" height="240"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Top districts by complaint volume</h3></div>
+            <div class="panel-body" id="top-complaints-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DAILY FREQUENCY SECTION -->
+      <section id="sec-dailyfreq" class="section" style="display:none;">
+        <div class="card-grid" id="dailyfreq-cards">
+          <div class="card accent-amber">
+            <div class="k">Total Outage Events (Selected Day)</div>
+            <div class="v" id="stat-daily-count">—</div>
+          </div>
+          <div class="card accent-red">
+            <div class="k">Total Outage Hours Lost</div>
+            <div class="v" id="stat-daily-hours">— hrs</div>
+          </div>
+          <div class="card accent-blue">
+            <div class="k">Avg Duration / Outage</div>
+            <div class="v" id="stat-daily-avg">— hrs</div>
+          </div>
+          <div class="card accent-green">
+            <div class="k">Active Monitored Districts</div>
+            <div class="v" id="stat-daily-districts">—</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Daily Outage Frequency Tracker</h3>
+              <div class="desc text-muted" style="font-size:12px;">Track daily outage occurrences (`daily_frequency`), total outage hours, and average duration per district</div>
+            </div>
+            <div class="toolbar">
+              <input type="date" id="dailyfreq-date-filter" />
+              <select id="dailyfreq-area-filter"><option value="">All districts</option></select>
+              <input type="text" id="dailyfreq-search" placeholder="Search district..." />
+              <button class="btn-sm primary" id="add-dailyfreq-btn">+ Record Daily Outage</button>
+            </div>
+          </div>
+
+          <div class="two-col" style="padding: 16px;">
+            <div class="panel" style="margin-bottom:0;">
+              <div class="panel-head"><h3>Outage Frequency (Counts) by District</h3></div>
+              <div class="panel-body"><canvas id="chart-dailyfreq" height="220"></canvas></div>
+            </div>
+            <div class="panel" style="margin-bottom:0;">
+              <div class="panel-head"><h3>Daily Outage Duration Comparison (Hours)</h3></div>
+              <div class="panel-body"><canvas id="chart-dailyfreq-duration" height="220"></canvas></div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table id="dailyfreq-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>District (Area)</th>
+                  <th>Division</th>
+                  <th>Region Type</th>
+                  <th>Outage Count</th>
+                  <th>Total Hours</th>
+                  <th>Avg Duration</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dailyfreq-table-body">
+                <tr><td colspan="9" class="loading-state">Loading daily frequency records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- AREAS -->
+      <section id="sec-areas" class="section" style="display:none;">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>All Districts (Areas)</h3>
+            <div class="toolbar">
+              <input type="text" id="area-search" placeholder="Search district..." />
+              <select id="area-division-filter"><option value="">All divisions</option></select>
+              <select id="area-region-filter">
+                <option value="">All region types</option>
+                <option>Urban</option><option>Semi-Urban</option><option>Rural</option>
+              </select>
+              <button class="btn-sm primary" id="add-area-btn">+ Add Area</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table id="area-table"></table></div>
+        </div>
+      </section>
+
+      <!-- COMPLAINTS -->
+      <section id="sec-complaints" class="section" style="display:none;">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Citizen Complaints Management</h3>
+              <div class="desc text-muted" style="font-size:12px;">Categorized by resolution workflow for rapid authority action</div>
+            </div>
+            <div class="toolbar">
+              <input type="text" id="complaint-search" placeholder="Search description or citizen..." />
+              <select id="complaint-area-filter"><option value="">All areas</option></select>
+              <select id="complaint-status-filter">
+                <option value="">All statuses</option>
+                <option value="open">Open (Action Required)</option>
+                <option value="in_review">In Process (Reviewing)</option>
+                <option value="resolved">Resolved History</option>
+                <option value="rejected">Rejected History</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- KANBAN BOARD CONTAINER -->
+          <div id="complaint-kanban-wrap" class="complaint-kanban-grid">
+            <!-- Open Column -->
+            <div class="kanban-column col-open">
+              <div class="kanban-col-header">
+                <div class="col-title-wrap">
+                  <span class="col-dot dot-open"></span>
+                  <h4>Open (Action Required)</h4>
+                </div>
+                <span class="count-badge badge-open" id="count-open">0</span>
+              </div>
+              <div class="kanban-card-list" id="kanban-col-open">
+                <div class="loading-state">Loading open complaints...</div>
+              </div>
+            </div>
+
+            <!-- In Process Column -->
+            <div class="kanban-column col-review">
+              <div class="kanban-col-header">
+                <div class="col-title-wrap">
+                  <span class="col-dot dot-review"></span>
+                  <h4>In Process (Reviewing)</h4>
+                </div>
+                <span class="count-badge badge-review" id="count-review">0</span>
+              </div>
+              <div class="kanban-card-list" id="kanban-col-review">
+                <div class="loading-state">Loading in-process complaints...</div>
+              </div>
+            </div>
+
+            <!-- Resolved & History Column -->
+            <div class="kanban-column col-history">
+              <div class="kanban-col-header">
+                <div class="col-title-wrap">
+                  <span class="col-dot dot-history"></span>
+                  <h4>Resolved History</h4>
+                </div>
+                <span class="count-badge badge-history" id="count-history">0</span>
+              </div>
+              <div class="kanban-card-list" id="kanban-col-history">
+                <div class="loading-state">Loading history...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCHEDULES -->
+      <section id="sec-schedules" class="section" style="display:none;">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Outage Schedules</h3>
+            <div class="toolbar">
+              <select id="schedule-area-filter"><option value="">All areas</option></select>
+              <input type="date" id="schedule-from" />
+              <input type="date" id="schedule-to" />
+              <button class="btn-sm primary" id="add-schedule-btn">+ New Schedule</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table id="schedule-table"></table></div>
+        </div>
+      </section>
+
+      <!-- HIGH RISK ZONES -->
+      <section id="sec-highrisk" class="section" style="display:none;">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>High Risk Zones Management</h3>
+              <div class="desc text-muted" style="font-size:12px;">Auto-calculated or manually flagged high risk districts requiring priority monitoring</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn-sm primary" id="add-highrisk-btn">🚩 + Flag High Risk Zone</button>
+            </div>
+          </div>
+          <div class="table-wrap"><table id="highrisk-table"></table></div>
+        </div>
+      </section>
+
+      <!-- MONTHLY ANALYSIS -->
+      <section id="sec-analysis" class="section" style="display:none;">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Monthly Analysis</h3>
+            <div class="toolbar">
+              <select id="analysis-area-filter"></select>
+            </div>
+          </div>
+          <div class="panel-body"><canvas id="chart-analysis" height="220"></canvas></div>
+          <div class="table-wrap"><table id="analysis-table"></table></div>
+        </div>
+      </section>
+
+      <!-- ACTIONS -->
+      <section id="sec-actions" class="section" style="display:none;">
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Log Official Action</h3>
+              <div class="desc text-muted" style="font-size:12px;">Dispatch routine or emergency operations for an area</div>
+            </div>
+            <div class="panel-body">
+              <form id="action-form">
+                <div class="field">
+                  <label for="action-area">Target Area (District)</label>
+                  <select id="action-area" required></select>
+                </div>
+                <div class="field">
+                  <label for="action-type">Action Type</label>
+                  <select id="action-type" required>
+                    <option>Emergency Repair Dispatch</option>
+                    <option>Transformer Maintenance</option>
+                    <option>Schedule Adjustment</option>
+                    <option>Feeder Load Balancing</option>
+                    <option>Substation Audit</option>
+                    <option>Public Notice Issued</option>
+                    <option>Site Inspection</option>
+                    <option>Complaint Review</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="action-notes">Dispatch Notes & Details</label>
+                  <textarea id="action-notes" rows="4" placeholder="Enter technical dispatch notes, feeder numbers, or maintenance details..."></textarea>
+                </div>
+                <button type="submit" class="btn-sm primary w-full">⚡ Log & Dispatch Action</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Authority Operations Feed</h3>
+              <div class="toolbar">
+                <select id="action-type-filter" style="font-size:12px; padding:4px 8px;">
+                  <option value="">All Action Types</option>
+                  <option>Emergency Repair Dispatch</option>
+                  <option>Transformer Maintenance</option>
+                  <option>Schedule Adjustment</option>
+                  <option>Feeder Load Balancing</option>
+                  <option>Substation Audit</option>
+                  <option>Public Notice Issued</option>
+                  <option>Site Inspection</option>
+                </select>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:16px;">
+              <div class="action-timeline-feed" id="action-timeline-feed">
+                <div class="loading-state">Loading operation logs...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AUTHORITY USERS -->
+      <section id="sec-users" class="section" style="display:none;">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Authority Staff Accounts & M:N Area Assignments</h3>
+              <div class="desc text-muted" style="font-size:12px;">Manage authority users and independently assign or unassign district areas</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn-sm primary" id="add-user-btn">+ Add User Account</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Email</th>
+                  <th>Assigned Areas (M:N)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Daily Frequency Modal -->
+<div class="modal-backdrop" id="dailyfreq-modal">
+  <div class="modal">
+    <h3 id="dailyfreq-modal-title">Record Daily Outage Frequency</h3>
+    <p class="sub">Log daily outage count and total duration for a specific district.</p>
+    <div class="form-error" id="dailyfreq-form-error"></div>
+    <form id="dailyfreq-form">
+      <input type="hidden" id="dailyfreq-id" />
+      <div class="field">
+        <label for="dailyfreq-area">Target Area (District)</label>
+        <select id="dailyfreq-area" required></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="dailyfreq-date">Date</label>
+          <input type="date" id="dailyfreq-date" required />
+        </div>
+        <div class="field">
+          <label for="dailyfreq-count">Outage Count (Times Cut)</label>
+          <input type="number" min="0" id="dailyfreq-count" required placeholder="e.g. 4" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="dailyfreq-total-hours">Total Outage Hours</label>
+          <input type="number" step="0.1" min="0" id="dailyfreq-total-hours" required placeholder="e.g. 6.5" />
+        </div>
+        <div class="field">
+          <label>Calculated Avg Duration</label>
+          <input type="text" id="dailyfreq-avg-preview" readonly value="0.00 hrs/outage" style="background:var(--panel-2); color:var(--amber); font-weight:600;" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="dailyfreq-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Save Daily Log</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Area modal -->
+<div class="modal-backdrop" id="area-modal">
+  <div class="modal">
+    <h3 id="area-modal-title">Add Area</h3>
+    <p class="sub">area_name stores the district name; division + region_type classify it.</p>
+    <div class="form-error" id="area-form-error"></div>
+    <form id="area-form">
+      <input type="hidden" id="area-id" />
+      <div class="field">
+        <label for="area-name">District name (area_name)</label>
+        <input type="text" id="area-name" required />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="area-division">Division</label>
+          <input type="text" id="area-division" list="division-list" required />
+          <datalist id="division-list"></datalist>
+        </div>
+        <div class="field">
+          <label for="area-region">Region type</label>
+          <select id="area-region" required>
+            <option>Urban</option><option>Semi-Urban</option><option>Rural</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="area-zip">Zip code</label>
+        <input type="text" id="area-zip" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="area-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Save area</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Complaint status modal -->
+<div class="modal-backdrop" id="complaint-modal">
+  <div class="modal">
+    <h3>Update Complaint</h3>
+    <p class="sub" id="complaint-modal-sub"></p>
+    <div class="form-error" id="complaint-form-error"></div>
+    <form id="complaint-status-form">
+      <input type="hidden" id="complaint-id" />
+      <div class="field">
+        <label for="complaint-status">Status</label>
+        <select id="complaint-status">
+          <option value="open">Open</option>
+          <option value="in_review">In review</option>
+          <option value="resolved">Resolved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="complaint-note">Resolution note</label>
+        <textarea id="complaint-note" rows="3"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="complaint-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Schedule modal -->
+<div class="modal-backdrop" id="schedule-modal">
+  <div class="modal">
+    <h3 id="schedule-modal-title">New Outage Schedule</h3>
+    <div class="form-error" id="schedule-form-error"></div>
+    <form id="schedule-form">
+      <input type="hidden" id="schedule-id" />
+      <div class="field">
+        <label for="schedule-area">Area</label>
+        <select id="schedule-area" required></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="schedule-date">Date</label>
+          <input type="date" id="schedule-date" required />
+        </div>
+        <div class="field">
+          <label for="schedule-duration">Duration (hours)</label>
+          <input type="number" step="0.1" min="0.1" id="schedule-duration" required />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="schedule-start">Start time</label>
+          <input type="time" id="schedule-start" required />
+        </div>
+        <div class="field">
+          <label for="schedule-end">End time</label>
+          <input type="time" id="schedule-end" required />
+        </div>
+      </div>
+      <div class="field">
+        <label for="schedule-reason">Reason</label>
+        <input type="text" id="schedule-reason" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="schedule-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Save schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Action Guidance & SOP Modal -->
+<div class="modal-backdrop" id="action-guidance-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h3 id="guidance-title">Take Action & Guided Steps</h3>
+        <p class="sub" id="guidance-sub">SOP Recommendation Engine</p>
+      </div>
+      <button type="button" class="btn-close" id="guidance-close-btn">&times;</button>
+    </div>
+    
+    <div class="guidance-container">
+      <div class="sop-card" id="guidance-complaint-summary"></div>
+
+      <div class="sop-card highlight" id="guidance-sop-card">
+        <div class="sop-badge-row">
+          <span class="pill pill-warning" id="sop-category-pill">Hardware Emergency</span>
+          <span class="pill pill-critical" id="sop-urgency-pill">Critical Urgency</span>
+        </div>
+        <h4 id="sop-action-heading">Recommended Step: Emergency Repair Dispatch</h4>
+        <p class="sop-desc" id="sop-action-desc">Dispatch local technical team immediately...</p>
+      </div>
+
+      <form id="guidance-action-form">
+        <input type="hidden" id="guidance-complaint-id" />
+        <input type="hidden" id="guidance-area-id" />
+        
+        <div class="field-row">
+          <div class="field">
+            <label for="guidance-action-type">Official Action Type</label>
+            <select id="guidance-action-type" required>
+              <option>Emergency Repair Dispatch</option>
+              <option>Transformer Maintenance</option>
+              <option>Schedule Adjustment</option>
+              <option>Feeder Load Balancing</option>
+              <option>Substation Audit</option>
+              <option>Public Notice Issued</option>
+              <option>Site Inspection</option>
+              <option>Complaint Review</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="guidance-target-status">Update Complaint Status To</label>
+            <select id="guidance-target-status" required>
+              <option value="in_review">In review</option>
+              <option value="resolved">Resolved</option>
+              <option value="open">Keep Open</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="guidance-action-notes">Action Dispatch Notes</label>
+          <textarea id="guidance-action-notes" rows="3" required placeholder="Log details of the action step taken..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-sm" id="guidance-cancel-btn">Cancel</button>
+          <button type="submit" class="btn-sm primary">Execute Step & Log Action</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- High Risk Zone Modal -->
+<div class="modal-backdrop" id="highrisk-modal">
+  <div class="modal">
+    <h3 id="highrisk-modal-title">Flag High Risk Zone</h3>
+    <p class="sub">Manually flag a district for critical load management monitoring</p>
+    <div class="form-error" id="highrisk-form-error"></div>
+    <form id="highrisk-form">
+      <input type="hidden" id="highrisk-id" />
+      <div class="field">
+        <label for="highrisk-area">Target Area (District)</label>
+        <select id="highrisk-area" required></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="highrisk-level">Risk Level</label>
+          <select id="highrisk-level" required>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="highrisk-date">Flagged Date</label>
+          <input type="date" id="highrisk-date" required />
+        </div>
+      </div>
+      <div class="field">
+        <label for="highrisk-reason">Flagged Reason & Vulnerability Notes</label>
+        <textarea id="highrisk-reason" rows="3" required placeholder="Enter reasons e.g. Substation transformer overload..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="highrisk-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Save Risk Flag</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Authority User Create/Edit Modal -->
+<div class="modal-backdrop" id="user-modal">
+  <div class="modal">
+    <h3 id="user-modal-title">Create Staff Account</h3>
+    <p class="sub">Register a new authority officer or administrator account</p>
+    <div class="form-error" id="user-form-error"></div>
+    <form id="user-form">
+      <input type="hidden" id="user-id-input" />
+      <div class="field">
+        <label for="user-username-input">Username</label>
+        <input type="text" id="user-username-input" required placeholder="e.g. officer.dhaka" />
+      </div>
+      <div class="field">
+        <label for="user-password-input">Password</label>
+        <input type="password" id="user-password-input" required placeholder="Account password" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="user-email-input">Contact Email</label>
+          <input type="email" id="user-email-input" placeholder="officer@lsms.gov.bd" />
+        </div>
+        <div class="field">
+          <label for="user-role-input">Role</label>
+          <select id="user-role-input">
+            <option value="officer">Officer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-sm" id="user-cancel-btn">Cancel</button>
+        <button type="submit" class="btn-sm primary">Create Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Manage Area Assignments Modal -->
+<div class="modal-backdrop" id="user-areas-modal">
+  <div class="modal glass-modal-large">
+    <div class="modal-header-glowing">
+      <div class="modal-icon-badge">🗺️</div>
+      <div>
+        <h3 id="user-areas-modal-title">Manage Area Assignments</h3>
+        <p class="sub" id="user-areas-modal-sub">Assign or unassign district areas for this staff account (M:N relationship)</p>
+      </div>
+      <button type="button" class="modal-close-btn" id="user-areas-close-x">&times;</button>
+    </div>
+    
+    <div class="form-error" id="user-areas-form-error"></div>
+
+    <div class="assignment-progress-box">
+      <div class="progress-info-row">
+        <span class="progress-title">District Access Coverage</span>
+        <span class="progress-count-badge" id="assignment-progress-text">0 / 64 Districts</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="assignment-progress-bar" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <div class="area-filter-toolbar">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="user-area-search" placeholder="Filter districts by name or division..." />
+      </div>
+      <div class="division-pill-bar" id="user-area-division-pills"></div>
+    </div>
+
+    <div class="quick-action-bar">
+      <span class="quick-action-label">Quick Actions:</span>
+      <div class="quick-btn-group">
+        <button type="button" class="btn-pill-action" onclick="selectAllAreas(true)">Select All Districts</button>
+        <button type="button" class="btn-pill-action" onclick="selectFilteredDivisionAreas()">Select Filtered Division</button>
+        <button type="button" class="btn-pill-action danger-pill" onclick="selectAllAreas(false)">Clear All</button>
+      </div>
+    </div>
+
+    <div class="district-cards-scroll-container" id="user-areas-checkboxes"></div>
+
+    <div class="modal-actions-glow">
+      <button type="button" class="btn-sm secondary-glass" id="user-areas-cancel-btn">Cancel</button>
+      <button type="button" class="btn-sm primary-glow" id="user-areas-save-btn">💾 Save Area Assignments</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
