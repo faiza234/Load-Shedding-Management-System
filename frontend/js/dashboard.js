@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
       highrisk: { t: "High Risk Zones", d: "Districts flagged for high outage risk & capacity shortfalls" },
       analysis: { t: "Monthly Analysis", d: "Historical rollup statistics & trend evaluation" },
       actions: { t: "Authority Actions", d: "Dispatch and operation feed for field officers" },
-      users: { t: "Authority Staff Accounts", d: "Manage users and M:N area assignments" }
+      users: { t: "Authority Staff Accounts", d: "Manage users and area assignments" }
     };
 
     if (titles[sec]) {
@@ -675,7 +675,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <td>${escapeHtml(u.contact_email || '-')}</td>
           <td><span class="pill pill-in_review">${(u.assigned_areas || []).length} districts assigned</span></td>
           <td>
-            <button class="btn-sm" onclick="manageUserAreas(${u.user_id})">🗺️ Manage Areas (M:N)</button>
+            <button class="btn-sm" onclick="manageUserAreas(${u.user_id})">🗺️ Manage Areas</button>
           </td>
         </tr>
       `).join("");
