@@ -6,7 +6,7 @@
 -- starting the backend server or running the seed script.
 --
 --   mysql -u root -p < schema.sql
---
+--k67
 -- It creates the database, all 10 tables (matching the ER diagram / relational
 -- schema), their constraints, two views, one stored procedure, and one
 -- trigger. Safe to re-run: it drops the database first if it already exists.
@@ -52,18 +52,27 @@ CREATE TABLE authority_user (
 -- authority_user and area. Establishes (M:1) relation to authority_user and (M:1) to area.
 -- -----------------------------------------------------------------------------
 CREATE TABLE authority_user_area (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
   user_id      INT NOT NULL,
   area_id      INT NOT NULL,
   assigned_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (user_id, area_id),
-  CONSTRAINT fk_user_area_user FOREIGN KEY (user_id)
-    REFERENCES authority_user(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_user_area_area FOREIGN KEY (area_id)
-    REFERENCES area(area_id) ON DELETE CASCADE ON UPDATE CASCADE,
-  INDEX idx_user_area_user (user_id),
+
+  UNIQUE KEY uq_user_area (user_id, area_id),
+
+  CONSTRAINT fk_user_area_user
+    FOREIGN KEY (user_id)
+    REFERENCES authority_user(user_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+
+  CONSTRAINT fk_user_area_area
+    FOREIGN KEY (area_id)
+    REFERENCES area(area_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+
   INDEX idx_user_area_area (area_id)
 ) ENGINE=InnoDB;
-
 -- -----------------------------------------------------------------------------
 -- CITIZEN — residents who may file complaints. "resides_in" Area.
 -- -----------------------------------------------------------------------------
